@@ -3,24 +3,29 @@ import click
 
 @click.group(help="Commands execution entry point")
 @click.pass_context
-def execute(ctx):
+def execute(ctx, **kwargs):
+    from base import BaseConfigurator
+
     ctx.ensure_object(dict)
+    ctx.obj["configurator"] = BaseConfigurator()
 
 
 @execute.command("publish", help="Publish message to kafka topic")
 @click.argument("name")
-def publish_message(name):
+@click.pass_context
+def publish_message(ctx, name):
     from publisher import Publisher
 
     message = f"Hello {name} !"
-    Publisher().publish(message)
+    Publisher(configurator=ctx.obj.get("configurator")).publish(message)
 
 
 @execute.command("subscribe", help="Subscribe to a kafka topic")
-def raise_subscriber():
+@click.pass_context
+def raise_subscriber(ctx):
     from subscriber import Subscriber
 
-    Subscriber().subscribe()
+    Subscriber(configurator=ctx.obj.get("configurator")).subscribe()
 
 
 if __name__ == "__main__":
