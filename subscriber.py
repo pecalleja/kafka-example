@@ -1,4 +1,6 @@
+from kafka import KafkaAdminClient
 from kafka import KafkaConsumer
+from kafka.admin import NewPartitions
 
 from base import AbstractSubscriber
 from base import BaseConfigurator
@@ -13,15 +15,15 @@ class Subscriber(AbstractSubscriber):
         super(Subscriber, self).__init__(configurator)
         if not self.kafka_url or not self.kafka_topic:
             raise ValueError("Invalid kafka url or topic")
-        # ToDo Check the number of partitions and create a new one if it's
-        #  necessary
-        print("creating a new subscriber")
+
         self.consumer = KafkaConsumer(
             self.kafka_topic,
             group_id=self.kafka_group,
             bootstrap_servers=[self.kafka_url],
             value_deserializer=lambda x: x.decode("utf-8"),
         )
+        partitions = self.consumer.partitions_for_topic(self.kafka_topic)
+        print(f"creating a new subscriber with: {partitions} partitions")
 
     def subscribe(self):
         for message in self.consumer:
@@ -33,3 +35,8 @@ class Subscriber(AbstractSubscriber):
                 f"offset: {offset}, "
                 f"message: {message.value}"
             )
+
+    def __del__(self):
+        print("deleting a subscriber")
+        self.consumer.pause()
+        self.consumer.unsubscribe()
